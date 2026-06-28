@@ -196,20 +196,16 @@
         }
 
 function kirim(suhu) {
-    let payload = {
-        suhu: suhu, 
-        waktu: new Date().toLocaleString("id-ID")
-    };
+    let params = new URLSearchParams();
+    params.append("suhu", suhu);
+    params.append("waktu", new Date().toLocaleString("id-ID"));
 
     fetch(SHEET_URL, {
         method: "POST",
         mode: "no-cors",
-        headers: {
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify(payload)
+        body: params
     }).then(() => {
-        console.log("Data berhasil dikirim: " + suhu);
+        console.log("Data dikirim (Form): " + suhu);
     }).catch(err => {
         console.error("Gagal kirim:", err);
     });
