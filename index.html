@@ -334,10 +334,7 @@ info.innerHTML =
 "📤 mengirim";
 
 
-
-await kirimSheet(nilai);
-
-
+kirimSheet(nilai);
 
 
 info.innerHTML =
@@ -785,30 +782,29 @@ return null;
 // ===========================
 
 
-async function kirimSheet(nilai){
-
+function kirimSheet(nilai){
 
 
 console.log(
-"Kirim:",
+"Kirim suhu:",
 nilai
 );
 
 
 
-let form =
-new FormData();
+let data =
+new URLSearchParams();
 
 
 
-form.append(
+data.append(
 "suhu",
 String(nilai)
 );
 
 
 
-form.append(
+data.append(
 "waktu",
 new Date()
 .toLocaleString("id-ID")
@@ -818,31 +814,45 @@ new Date()
 
 
 
-
-await fetch(
-
+fetch(
 SHEET_URL,
-
 {
 
 method:"POST",
 
-body:form
+mode:"no-cors",
+
+headers:{
+
+"Content-Type":
+"application/x-www-form-urlencoded"
+
+},
+
+body:data.toString()
 
 }
 
+)
+.then(()=>{
+
+console.log(
+"Request terkirim"
 );
 
+})
+.catch(err=>{
+
+console.log(
+"Error:",
+err
+);
+
+});
+
 
 
 }
-
-
-
-
-
-
-
 function sleep(ms){
 
 return new Promise(
