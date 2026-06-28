@@ -196,9 +196,9 @@
         }
 
 function kirim(suhu) {
-    let data = {
-        "suhu": suhu,
-        "waktu": new Date().toLocaleString("id-ID")
+    let payload = {
+        suhu: suhu, 
+        waktu: new Date().toLocaleString("id-ID")
     };
 
     fetch(SHEET_URL, {
@@ -207,11 +207,11 @@ function kirim(suhu) {
         headers: {
             "Content-Type": "application/json"
         },
-        body: JSON.stringify(data)
+        body: JSON.stringify(payload)
     }).then(() => {
-        console.log("Data dikirim: " + suhu);
+        console.log("Data berhasil dikirim: " + suhu);
     }).catch(err => {
-        console.error("Error saat kirim data:", err);
+        console.error("Gagal kirim:", err);
     });
 }
 
