@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html>
+
 <head>
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,6 +8,7 @@
 <title>Freezer LED Scanner</title>
 
 <script src="https://docs.opencv.org/4.x/opencv.js"></script>
+
 
 <style>
 
@@ -39,6 +41,7 @@ width:100%;
 position:absolute;
 left:34%;
 top:43%;
+
 width:32%;
 height:18%;
 
@@ -50,7 +53,7 @@ border:4px solid #00ff00;
 #hasil{
 
 font-size:40px;
-margin:15px;
+margin:10px;
 
 }
 
@@ -82,8 +85,8 @@ width:80%;
 
 </style>
 
-</head>
 
+</head>
 
 
 <body>
@@ -95,17 +98,19 @@ width:80%;
 
 <div class="camera">
 
+
 <video id="video" autoplay playsinline></video>
+
 
 <div id="target"></div>
 
+
 </div>
 
 
 
-<div id="hasil">
--
-</div>
+
+<div id="hasil">-</div>
 
 
 <div id="info">
@@ -113,9 +118,8 @@ Siap
 </div>
 
 
-<button onclick="start()">
-📷
-</button>
+
+<button onclick="start()">📷</button>
 
 
 <canvas id="canvas"></canvas>
@@ -147,10 +151,10 @@ let info =
 document.getElementById("info");
 
 
+
 let stream=null;
 
 let aktif=false;
-
 
 
 
@@ -162,9 +166,10 @@ if(aktif)return;
 
 aktif=true;
 
-scanLoop();
+loop();
 
 }
+
 
 
 
@@ -198,7 +203,6 @@ ideal:1080
 video.srcObject=stream;
 
 
-
 await new Promise(r=>{
 
 video.onloadedmetadata=r;
@@ -206,8 +210,8 @@ video.onloadedmetadata=r;
 });
 
 
-
 }
+
 
 
 
@@ -223,6 +227,7 @@ if(stream){
 stream
 .getTracks()
 .forEach(t=>t.stop());
+
 
 stream=null;
 
@@ -241,13 +246,17 @@ video.srcObject=null;
 
 
 
-async function scanLoop(){
+
+async function loop(){
+
 
 
 while(aktif){
 
 
+
 let nilai=null;
+
 
 
 
@@ -270,7 +279,7 @@ await sleep(1500);
 
 
 info.innerHTML =
-"🔍 menganalisis";
+"🔍 scan";
 
 
 
@@ -279,7 +288,9 @@ ambilFoto();
 
 
 
+
 tutupCamera();
+
 
 
 
@@ -288,7 +299,7 @@ if(!nilai){
 
 
 info.innerHTML =
-"❌ ulang scan";
+"❌ ulang";
 
 
 await sleep(1500);
@@ -297,34 +308,34 @@ await sleep(1500);
 }
 
 
+
 }
 
 
 
 
-// HASIL VISUAL
+
 
 hasil.innerHTML =
 "Suhu : "+nilai+"°C";
 
 
 
+
 console.log(
-"Nilai hasil scan:",
+"HASIL SCAN:",
 nilai
 );
 
 
 
 
-
 info.innerHTML =
-"📤 kirim data";
+"📤 mengirim";
 
 
 
 await kirimSheet(nilai);
-
 
 
 
@@ -351,13 +362,13 @@ await sleep(60000);
 
 
 
-
-
 function ambilFoto(){
+
 
 
 let temp =
 document.createElement("canvas");
+
 
 
 temp.width =
@@ -399,7 +410,6 @@ cv.imread(temp);
 
 
 
-// area angka freezer
 
 let x =
 src.cols*0.34;
@@ -480,7 +490,6 @@ cv.THRESH_BINARY
 
 
 
-
 let kernel =
 cv.Mat.ones(
 
@@ -495,17 +504,25 @@ cv.CV_8U
 
 
 cv.dilate(
+
 thresh,
+
 thresh,
+
 kernel
+
 );
 
 
 
 cv.erode(
+
 thresh,
+
 thresh,
+
 kernel
+
 );
 
 
@@ -533,7 +550,6 @@ new cv.Mat();
 
 
 
-
 cv.findContours(
 
 thresh,
@@ -557,11 +573,14 @@ let box=[];
 
 
 
+
+
 for(
 let i=0;
 i<contours.size();
 i++
 ){
+
 
 
 let r =
@@ -572,34 +591,34 @@ contours.get(i)
 
 
 
-let angka =
+let angkaOk =
 r.height > h*0.3;
 
 
 
-let minus =
+let minusOk =
 r.width > h*0.2 &&
 r.height < r.width*0.6;
 
 
 
-
 if(
-angka || minus
+angkaOk || minusOk
 ){
 
 
-
 if(
-r.y > h*0.15 &&
-r.x < w*0.8
+r.y>h*0.15 &&
+r.x<w*0.8
 ){
 
 box.push(r);
 
 }
 
+
 }
+
 
 
 }
@@ -613,8 +632,6 @@ box.push(r);
 box.sort(
 (a,b)=>a.x-b.x
 );
-
-
 
 
 
@@ -642,7 +659,7 @@ thresh.roi(r);
 
 
 
-let putih =
+let white =
 cv.countNonZero(roi);
 
 
@@ -653,12 +670,11 @@ r.width*r.height;
 
 
 let solid =
-putih/total;
+white/total;
 
 
 
 roi.delete();
-
 
 
 
@@ -697,7 +713,6 @@ angka+="9";
 
 else{
 
-
 angka+="0";
 
 
@@ -707,7 +722,10 @@ angka+="0";
 }
 
 
+
 });
+
+
 
 
 
@@ -727,7 +745,6 @@ kernel.delete();
 contours.delete();
 
 hierarchy.delete();
-
 
 
 
@@ -763,32 +780,30 @@ return null;
 
 
 
+// ===========================
+// KIRIM NILAI KE SPREADSHEET
+// ===========================
 
-// =========================
-// SEND DATA KE SHEET
-// =========================
 
-
-function kirimSheet(nilai){
+async function kirimSheet(nilai){
 
 
 
 console.log(
-"Mengirim:",
+"Kirim:",
 nilai
 );
 
 
 
-
 let form =
-new URLSearchParams();
+new FormData();
 
 
 
 form.append(
 "suhu",
-nilai
+String(nilai)
 );
 
 
@@ -804,7 +819,7 @@ new Date()
 
 
 
-return fetch(
+await fetch(
 
 SHEET_URL,
 
@@ -812,19 +827,7 @@ SHEET_URL,
 
 method:"POST",
 
-mode:"no-cors",
-
-headers:{
-
-"Content-Type":
-"application/x-www-form-urlencoded"
-
-},
-
-
-body:
-form.toString()
-
+body:form
 
 }
 
@@ -833,7 +836,6 @@ form.toString()
 
 
 }
-
 
 
 
