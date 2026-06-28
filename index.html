@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Freezer LED Scanner - Debug Mode</title>
+    <title>Freezer LED Scanner - Final</title>
     <script src="https://docs.opencv.org/4.x/opencv.js"></script>
     <style>
         body { margin: 0; background: #111; color: white; font-family: Arial; text-align: center; }
@@ -14,7 +14,6 @@
         button { width: 90px; height: 90px; font-size: 40px; border-radius: 50%; background-color: #222; color: white; border: 2px solid #00ff00; cursor: pointer; }
         button:active { background-color: #00ff00; }
         
-        /* Debug Canvas sekarang dimunculkan */
         #debug-container { margin-top: 20px; }
         #debug-text { font-size: 14px; color: #ffeb3b; }
         canvas { border: 2px solid #ff0000; background: #000; width: 80%; max-width: 400px; margin-top: 10px; }
@@ -39,7 +38,9 @@
     </div>
 
     <script>
+        // PASTIKAN URL INI BENAR SESUAI DENGAN DEPLOYMENT BARU GOOGLE APPS SCRIPT KAMU
         const SHEET_URL = "https://script.google.com/macros/s/AKfycbzUjVh_iKrtbDJ1TzoN-xdWG110bTAV8IWwVZA8qSkOYINaM1rsHXVF4eBivrU0MOUm/exec";
+        
         let video = document.getElementById("video");
         let canvas = document.getElementById("canvas");
         let hasil = document.getElementById("hasil");
@@ -88,9 +89,13 @@
                         await sleep(2000);
                     }
                 }
+                
                 hasil.innerHTML = "Suhu : " + nilai + "°C";
                 info.innerHTML = "✅ berhasil dikirim";
+                
                 kirim(nilai);
+                
+                // Tunggu 1 menit sebelum scan ulang
                 await sleep(60000);
             }
         }
@@ -98,7 +103,6 @@
         function ambilFoto() {
             if (typeof cv === 'undefined' || !cv.Mat) return null;
 
-            // Buat canvas sementara untuk mengambil frame utuh
             let tempCanvas = document.createElement("canvas");
             tempCanvas.width = video.videoWidth;
             tempCanvas.height = video.videoHeight;
@@ -119,15 +123,14 @@
             cv.cvtColor(crop, gray, cv.COLOR_RGBA2GRAY);
             
             let thresh = new cv.Mat();
-            // Gunakan nilai threshold 150. Jika terlalu gelap di layarmu, turunkan ke 120. Jika kotor, naikkan ke 180.
             cv.threshold(gray, thresh, 150, 255, cv.THRESH_BINARY);
 
-            // 3. Penebalan (Dilasi) agar segmen LED yang putus-putus menyatu jadi 1 angka solid
+            // 3. Penebalan (Dilasi) agar segmen LED solid
             let kernel = cv.Mat.ones(7, 7, cv.CV_8U); 
             cv.dilate(thresh, thresh, kernel, new cv.Point(-1, -1), 1);
             cv.erode(thresh, thresh, kernel, new cv.Point(-1, -1), 1); 
 
-            // Tampilkan hasil crop hitam-putih ke layar (Mode Debug)
+            // Menampilkan hasil ke mode debug
             cv.imshow("canvas", thresh);
 
             // 4. Deteksi Kontur
@@ -138,11 +141,10 @@
             let box = [];
             for (let i = 0; i < contours.size(); i++) {
                 let r = cv.boundingRect(contours.get(i));
-                let isAngka = (r.height > h * 0.3); // Minimal 30% dari tinggi area
-                let isMinus = (r.width > h * 0.2 && r.height < r.width * 0.6); // Pipih mendatar
+                let isAngka = (r.height > h * 0.3); 
+                let isMinus = (r.width > h * 0.2 && r.height < r.width * 0.6); 
 
                 if (isAngka || isMinus) {
-                    // Abaikan ikon hati (terlalu atas) atau text °C (terlalu kanan)
                     if (r.y > h * 0.15 && r.x < w * 0.8) {
                         box.push(r);
                     }
@@ -157,29 +159,27 @@
             box.forEach(r => {
                 let ratio = r.height / r.width;
                 
-                // Menghitung kepadatan (Solidity)
                 let digitRoi = thresh.roi(r);
                 let whitePixels = cv.countNonZero(digitRoi);
                 let totalPixels = r.width * r.height;
                 let solidity = whitePixels / totalPixels;
                 digitRoi.delete();
 
-                // A. Deteksi Minus (-)
+                // Deteksi Minus
                 if (ratio < 0.8) {
                     punyaMinus = true;
                 } 
-                // B. Deteksi Angka
+                // Deteksi Angka
                 else {
                     if (ratio > 2.4) {
                         angka += "1";
                     } else {
-                        // Kombinasi Rasio dan Kepadatan untuk membedakan 7, 9, dan 0
                         if (solidity < 0.45) {
-                            angka += "7"; // 7 banyak ruang kosong
+                            angka += "7"; 
                         } else if (solidity >= 0.45 && solidity < 0.65) {
-                            angka += "9"; // 9 kepadatannya menengah
+                            angka += "9"; 
                         } else {
-                            angka += "0"; // 0 (atau 8) sangat padat
+                            angka += "0"; 
                         }
                     }
                 }
@@ -195,26 +195,24 @@
             return null;
         }
 
-       function kirim(suhu) {
-    // Ubah format data dari JSON menjadi URLSearchParams (seperti form HTML biasa)
-    let formData = new URLSearchParams();
-    formData.append("suhu", suhu);
-    formData.append("waktu", new Date().toLocaleString());
+        function kirim(suhu) {
+            fetch(SHEET_URL, {
+                method: "POST",
+                mode: "no-cors", 
+                body: JSON.stringify({
+                    suhu: suhu,
+                    waktu: new Date().toLocaleString("id-ID")
+                })
+            }).then(() => {
+                console.log("Data dikirim (status tidak terbaca karena no-cors): ", suhu);
+            }).catch(err => {
+                console.error("Gagal mengirim data:", err);
+            });
+        }
 
-    fetch(SHEET_URL, {
-        method: "POST",
-        mode: "no-cors", 
-        headers: {
-            "Content-Type": "application/x-www-form-urlencoded"
-        },
-        body: formData.toString()
-    }).then(() => {
-        console.log("Data suhu terkirim ke sheet: ", suhu);
-    }).catch(err => {
-        console.error("Gagal mengirim data ke Google Sheets:", err);
-    });
-}
-        function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+        function sleep(ms) { 
+            return new Promise(r => setTimeout(r, ms)); 
+        }
     </script>
 </body>
 </html>
