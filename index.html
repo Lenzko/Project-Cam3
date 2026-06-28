@@ -1,873 +1,218 @@
 <!DOCTYPE html>
 <html>
-
 <head>
-
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>Freezer LED Scanner</title>
-
-<script src="https://docs.opencv.org/4.x/opencv.js"></script>
-
-
-<style>
-
-body{
-margin:0;
-background:#111;
-color:white;
-font-family:Arial;
-text-align:center;
-}
-
-
-.camera{
-position:relative;
-width:95%;
-max-width:700px;
-margin:auto;
-border-radius:20px;
-overflow:hidden;
-}
-
-
-video{
-width:100%;
-}
-
-
-#target{
-
-position:absolute;
-left:34%;
-top:43%;
-
-width:32%;
-height:18%;
-
-border:4px solid #00ff00;
-
-}
-
-
-#hasil{
-
-font-size:40px;
-margin:10px;
-
-}
-
-
-#info{
-
-color:#00ff00;
-
-}
-
-
-button{
-
-width:90px;
-height:90px;
-font-size:40px;
-border-radius:50%;
-
-}
-
-
-canvas{
-
-border:2px solid red;
-width:80%;
-
-}
-
-
-</style>
-
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Freezer LED Scanner - Final</title>
+    <script src="https://docs.opencv.org/4.x/opencv.js"></script>
+    <style>
+        body { margin: 0; background: #111; color: white; font-family: Arial; text-align: center; }
+        .camera { position: relative; width: 95%; max-width: 700px; margin: auto; border-radius: 20px; overflow: hidden; }
+        video { width: 100%; }
+        #target { position: absolute; left: 34%; top: 43%; width: 32%; height: 18%; border: 4px solid #00ff00; box-sizing: border-box; }
+        #hasil { font-size: 40px; margin: 10px; }
+        #info { color: #00ff00; margin-bottom: 15px; }
+        button { width: 90px; height: 90px; font-size: 40px; border-radius: 50%; background-color: #222; color: white; border: 2px solid #00ff00; cursor: pointer; }
+        button:active { background-color: #00ff00; }
+        
+        #debug-container { margin-top: 20px; }
+        #debug-text { font-size: 14px; color: #ffeb3b; }
+        canvas { border: 2px solid #ff0000; background: #000; width: 80%; max-width: 400px; margin-top: 10px; }
+    </style>
 </head>
-
-
 <body>
 
-
-<h2>❄️ Freezer LED Scanner</h2>
-
-
-
-<div class="camera">
-
-
-<video id="video" autoplay playsinline></video>
-
-
-<div id="target"></div>
-
-
-</div>
-
-
-
-
-<div id="hasil">-</div>
-
-
-<div id="info">
-Siap
-</div>
-
-
-
-<button onclick="start()">📷</button>
-
-
-<canvas id="canvas"></canvas>
-
-
-
-
-<script>
-
-
-const SHEET_URL =
-"https://script.google.com/macros/s/AKfycbzUjVh_iKrtbDJ1TzoN-xdWG110bTAV8IWwVZA8qSkOYINaM1rsHXVF4eBivrU0MOUm/exec";
-
-
-
-let video =
-document.getElementById("video");
-
-
-let canvas =
-document.getElementById("canvas");
-
-
-let hasil =
-document.getElementById("hasil");
-
-
-let info =
-document.getElementById("info");
-
-
-
-let stream=null;
-
-let aktif=false;
-
-
-
-
-
-function start(){
-
-if(aktif)return;
-
-aktif=true;
-
-loop();
-
-}
-
-
-
-
-
-
-
-async function bukaCamera(){
-
-
-stream =
-await navigator.mediaDevices.getUserMedia({
-
-video:{
-
-facingMode:"environment",
-
-width:{
-ideal:1920
-},
-
-height:{
-ideal:1080
-}
-
-}
-
-});
-
-
-
-video.srcObject=stream;
-
-
-await new Promise(r=>{
-
-video.onloadedmetadata=r;
-
-});
-
-
-}
-
-
-
-
-
-
-
-
-function tutupCamera(){
-
-
-if(stream){
-
-stream
-.getTracks()
-.forEach(t=>t.stop());
-
-
-stream=null;
-
-}
-
-
-video.srcObject=null;
-
-
-}
-
-
-
-
-
-
-
-
-
-async function loop(){
-
-
-
-while(aktif){
-
-
-
-let nilai=null;
-
-
-
-
-while(!nilai){
-
-
-
-info.innerHTML =
-"📷 membuka kamera";
-
-
-
-await bukaCamera();
-
-
-
-await sleep(1500);
-
-
-
-
-info.innerHTML =
-"🔍 scan";
-
-
-
-nilai =
-ambilFoto();
-
-
-
-
-tutupCamera();
-
-
-
-
-
-if(!nilai){
-
-
-info.innerHTML =
-"❌ ulang";
-
-
-await sleep(1500);
-
-
-}
-
-
-
-}
-
-
-
-
-
-
-hasil.innerHTML =
-"Suhu : "+nilai+"°C";
-
-
-
-
-console.log(
-"HASIL SCAN:",
-nilai
-);
-
-
-
-
-info.innerHTML =
-"📤 mengirim";
-
-
-kirimSheet(nilai);
-
-
-info.innerHTML =
-"✅ terkirim";
-
-
-
-
-await sleep(60000);
-
-
-}
-
-
-
-}
-
-
-
-
-
-
-
-
-function ambilFoto(){
-
-
-
-let temp =
-document.createElement("canvas");
-
-
-
-temp.width =
-video.videoWidth;
-
-
-temp.height =
-video.videoHeight;
-
-
-
-let ctx =
-temp.getContext("2d");
-
-
-
-ctx.drawImage(
-
-video,
-
-0,
-
-0,
-
-temp.width,
-
-temp.height
-
-);
-
-
-
-
-
-let src =
-cv.imread(temp);
-
-
-
-
-
-
-let x =
-src.cols*0.34;
-
-
-let y =
-src.rows*0.43;
-
-
-let w =
-src.cols*0.32;
-
-
-let h =
-src.rows*0.18;
-
-
-
-
-let crop =
-src.roi(
-
-new cv.Rect(
-x,
-y,
-w,
-h
-)
-
-);
-
-
-
-
-
-
-let gray =
-new cv.Mat();
-
-
-
-cv.cvtColor(
-
-crop,
-
-gray,
-
-cv.COLOR_RGBA2GRAY
-
-);
-
-
-
-
-
-
-let thresh =
-new cv.Mat();
-
-
-
-cv.threshold(
-
-gray,
-
-thresh,
-
-150,
-
-255,
-
-cv.THRESH_BINARY
-
-);
-
-
-
-
-
-
-let kernel =
-cv.Mat.ones(
-
-7,
-
-7,
-
-cv.CV_8U
-
-);
-
-
-
-cv.dilate(
-
-thresh,
-
-thresh,
-
-kernel
-
-);
-
-
-
-cv.erode(
-
-thresh,
-
-thresh,
-
-kernel
-
-);
-
-
-
-
-
-
-cv.imshow(
-"canvas",
-thresh
-);
-
-
-
-
-
-
-
-let contours =
-new cv.MatVector();
-
-
-let hierarchy =
-new cv.Mat();
-
-
-
-cv.findContours(
-
-thresh,
-
-contours,
-
-hierarchy,
-
-cv.RETR_EXTERNAL,
-
-cv.CHAIN_APPROX_SIMPLE
-
-);
-
-
-
-
-
-
-let box=[];
-
-
-
-
-
-for(
-let i=0;
-i<contours.size();
-i++
-){
-
-
-
-let r =
-cv.boundingRect(
-contours.get(i)
-);
-
-
-
-
-let angkaOk =
-r.height > h*0.3;
-
-
-
-let minusOk =
-r.width > h*0.2 &&
-r.height < r.width*0.6;
-
-
-
-if(
-angkaOk || minusOk
-){
-
-
-if(
-r.y>h*0.15 &&
-r.x<w*0.8
-){
-
-box.push(r);
-
-}
-
-
-}
-
-
-
-}
-
-
-
-
-
-
-
-box.sort(
-(a,b)=>a.x-b.x
-);
-
-
-
-
-
-let angka="";
-
-let minus=false;
-
-
-
-
-
-
-box.forEach(r=>{
-
-
-let ratio =
-r.height/r.width;
-
-
-
-let roi =
-thresh.roi(r);
-
-
-
-let white =
-cv.countNonZero(roi);
-
-
-
-let total =
-r.width*r.height;
-
-
-
-let solid =
-white/total;
-
-
-
-roi.delete();
-
-
-
-
-if(ratio<0.8){
-
-
-minus=true;
-
-
-}
-
-else{
-
-
-if(ratio>2.4){
-
-angka+="1";
-
-
-}
-
-else if(solid<0.45){
-
-angka+="7";
-
-
-}
-
-else if(solid<0.65){
-
-angka+="9";
-
-
-}
-
-else{
-
-angka+="0";
-
-
-}
-
-
-}
-
-
-
-});
-
-
-
-
-
-
-
-
-src.delete();
-
-crop.delete();
-
-gray.delete();
-
-thresh.delete();
-
-kernel.delete();
-
-contours.delete();
-
-hierarchy.delete();
-
-
-
-
-
-
-if(
-angka.length>=2
-){
-
-
-return (
-
-minus ? "-" : ""
-
-)+angka;
-
-
-}
-
-
-
-return null;
-
-
-
-}
-
-
-
-
-
-
-
-
-// ===========================
-// KIRIM NILAI KE SPREADSHEET
-// ===========================
-
-
-function kirimSheet(nilai){
-
-
-console.log(
-"Kirim suhu:",
-nilai
-);
-
-
-
-let data =
-new URLSearchParams();
-
-
-
-data.append(
-"suhu",
-String(nilai)
-);
-
-
-
-data.append(
-"waktu",
-new Date()
-.toLocaleString("id-ID")
-);
-
-
-
-
-
-fetch(
-SHEET_URL,
-{
-
-method:"POST",
-
-mode:"no-cors",
-
-headers:{
-
-"Content-Type":
-"application/x-www-form-urlencoded"
-
-},
-
-body:data.toString()
-
-}
-
-)
-.then(()=>{
-
-console.log(
-"Request terkirim"
-);
-
-})
-.catch(err=>{
-
-console.log(
-"Error:",
-err
-);
-
-});
-
-
-
-}
-function sleep(ms){
-
-return new Promise(
-
-r=>setTimeout(r,ms)
-
-);
-
-}
-
-
-
-</script>
-
-
+    <h2>❄️ Freezer LED Scanner</h2>
+
+    <div class="camera">
+        <video id="video" autoplay playsinline></video>
+        <div id="target"></div>
+    </div>
+
+    <div id="hasil">-</div>
+    <div id="info">Siap</div>
+    <button onclick="start()">📷</button>
+
+    <div id="debug-container">
+        <div id="debug-text">Mata Komputer (Mode Debug):</div>
+        <canvas id="canvas"></canvas>
+    </div>
+
+    <script>
+        // PASTIKAN URL INI BENAR SESUAI DENGAN DEPLOYMENT BARU GOOGLE APPS SCRIPT KAMU
+        const SHEET_URL = "https://script.google.com/macros/s/AKfycbzUjVh_iKrtbDJ1TzoN-xdWG110bTAV8IWwVZA8qSkOYINaM1rsHXVF4eBivrU0MOUm/exec";
+        
+        let video = document.getElementById("video");
+        let canvas = document.getElementById("canvas");
+        let hasil = document.getElementById("hasil");
+        let info = document.getElementById("info");
+
+        let stream = null;
+        let aktif = false;
+
+        function start() {
+            if (aktif) return;
+            aktif = true;
+            loop();
+        }
+
+        async function bukaCamera() {
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: "environment", width: { ideal: 1920 }, height: { ideal: 1080 } }
+                });
+                video.srcObject = stream;
+                await new Promise(r => { video.onloadedmetadata = r; });
+            } catch (err) {
+                info.innerHTML = "❌ Izin kamera ditolak";
+            }
+        }
+
+        function tutupCamera() {
+            if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+            video.srcObject = null;
+        }
+
+        async function loop() {
+            while (aktif) {
+                let nilai = null;
+                while (!nilai) {
+                    info.innerHTML = "📷 membuka kamera...";
+                    await bukaCamera();
+                    await sleep(1500); 
+
+                    info.innerHTML = "🔍 menganalisis LED...";
+                    nilai = ambilFoto();
+                    tutupCamera();
+
+                    if (!nilai) {
+                        info.innerHTML = "❌ gagal mendeteksi, mengulang...";
+                        await sleep(2000);
+                    }
+                }
+                
+                hasil.innerHTML = "Suhu : " + nilai + "°C";
+                info.innerHTML = "✅ berhasil dikirim";
+                
+                kirim(nilai);
+                
+                // Tunggu 1 menit sebelum scan ulang
+                await sleep(60000);
+            }
+        }
+
+        function ambilFoto() {
+            if (typeof cv === 'undefined' || !cv.Mat) return null;
+
+            let tempCanvas = document.createElement("canvas");
+            tempCanvas.width = video.videoWidth;
+            tempCanvas.height = video.videoHeight;
+            let ctx = tempCanvas.getContext("2d");
+            ctx.drawImage(video, 0, 0, tempCanvas.width, tempCanvas.height);
+
+            let src = cv.imread(tempCanvas);
+
+            // 1. Crop area berdasarkan koordinat box hijau
+            let x = src.cols * 0.34;
+            let y = src.rows * 0.43;
+            let w = src.cols * 0.32;
+            let h = src.rows * 0.18;
+            let crop = src.roi(new cv.Rect(x, y, w, h));
+
+            // 2. Preprocessing & Binarization
+            let gray = new cv.Mat();
+            cv.cvtColor(crop, gray, cv.COLOR_RGBA2GRAY);
+            
+            let thresh = new cv.Mat();
+            cv.threshold(gray, thresh, 150, 255, cv.THRESH_BINARY);
+
+            // 3. Penebalan (Dilasi) agar segmen LED solid
+            let kernel = cv.Mat.ones(7, 7, cv.CV_8U); 
+            cv.dilate(thresh, thresh, kernel, new cv.Point(-1, -1), 1);
+            cv.erode(thresh, thresh, kernel, new cv.Point(-1, -1), 1); 
+
+            // Menampilkan hasil ke mode debug
+            cv.imshow("canvas", thresh);
+
+            // 4. Deteksi Kontur
+            let contours = new cv.MatVector();
+            let hierarchy = new cv.Mat();
+            cv.findContours(thresh, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
+
+            let box = [];
+            for (let i = 0; i < contours.size(); i++) {
+                let r = cv.boundingRect(contours.get(i));
+                let isAngka = (r.height > h * 0.3); 
+                let isMinus = (r.width > h * 0.2 && r.height < r.width * 0.6); 
+
+                if (isAngka || isMinus) {
+                    if (r.y > h * 0.15 && r.x < w * 0.8) {
+                        box.push(r);
+                    }
+                }
+            }
+
+            box.sort((a, b) => a.x - b.x);
+
+            let angka = "";
+            let punyaMinus = false;
+
+            box.forEach(r => {
+                let ratio = r.height / r.width;
+                
+                let digitRoi = thresh.roi(r);
+                let whitePixels = cv.countNonZero(digitRoi);
+                let totalPixels = r.width * r.height;
+                let solidity = whitePixels / totalPixels;
+                digitRoi.delete();
+
+                // Deteksi Minus
+                if (ratio < 0.8) {
+                    punyaMinus = true;
+                } 
+                // Deteksi Angka
+                else {
+                    if (ratio > 2.4) {
+                        angka += "1";
+                    } else {
+                        if (solidity < 0.45) {
+                            angka += "7"; 
+                        } else if (solidity >= 0.45 && solidity < 0.65) {
+                            angka += "9"; 
+                        } else {
+                            angka += "0"; 
+                        }
+                    }
+                }
+            });
+
+            // Cleanup memori
+            src.delete(); crop.delete(); gray.delete(); thresh.delete(); 
+            kernel.delete(); contours.delete(); hierarchy.delete();
+
+            if (angka.length >= 2) {
+                return (punyaMinus ? "-" : "") + angka;
+            }
+            return null;
+        }
+
+        function kirim(suhu) {
+            fetch(SHEET_URL, {
+                method: "POST",
+                mode: "no-cors", 
+                body: JSON.stringify({
+                    suhu: suhu,
+                    waktu: new Date().toLocaleString("id-ID")
+                })
+            }).then(() => {
+                console.log("Data dikirim (status tidak terbaca karena no-cors): ", suhu);
+            }).catch(err => {
+                console.error("Gagal mengirim data:", err);
+            });
+        }
+
+        function sleep(ms) { 
+            return new Promise(r => setTimeout(r, ms)); 
+        }
+    </script>
 </body>
-
 </html>
