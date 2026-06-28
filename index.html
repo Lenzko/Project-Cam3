@@ -8,14 +8,17 @@
 <title>Freezer Visual Scanner</title>
 
 
+<script src="https://docs.opencv.org/4.x/opencv.js"></script>
+
+
 <style>
 
 body{
+margin:0;
 background:#111;
 color:white;
 font-family:Arial;
 text-align:center;
-margin:0;
 }
 
 
@@ -32,7 +35,9 @@ border-radius:20px;
 
 
 video{
+
 width:100%;
+
 }
 
 
@@ -40,20 +45,21 @@ width:100%;
 
 position:absolute;
 
-width:30%;
-height:16%;
+width:32%;
+height:18%;
 
-left:35%;
-top:45%;
+left:34%;
+top:43%;
 
 border:4px solid #00ff00;
 
 }
 
 
+
 #hasil{
 
-font-size:40px;
+font-size:42px;
 margin:20px;
 
 }
@@ -62,6 +68,7 @@ margin:20px;
 #info{
 
 color:#00ff00;
+font-size:18px;
 
 }
 
@@ -70,18 +77,25 @@ button{
 
 width:90px;
 height:90px;
+
 border-radius:50%;
+
 font-size:40px;
 
 }
 
 
+
 canvas{
+
 display:none;
+
 }
 
 
+
 </style>
+
 
 </head>
 
@@ -106,9 +120,11 @@ display:none;
 
 
 
+
 <div id="hasil">
 -
 </div>
+
 
 
 <div id="info">
@@ -116,9 +132,11 @@ Tekan kamera
 </div>
 
 
+
 <button onclick="start()">
 📷
 </button>
+
 
 
 <canvas id="canvas"></canvas>
@@ -127,7 +145,9 @@ Tekan kamera
 
 
 
+
 <script>
+
 
 
 const SHEET_URL =
@@ -158,6 +178,23 @@ let stream=null;
 
 
 
+let cvReady=false;
+
+
+
+cv['onRuntimeInitialized']=()=>{
+
+cvReady=true;
+
+info.innerHTML="OpenCV siap";
+
+};
+
+
+
+
+
+
 
 
 
@@ -183,7 +220,9 @@ scan();
 
 
 
-async function openCamera(){
+
+async function bukaKamera(){
+
 
 
 stream =
@@ -224,7 +263,6 @@ video.onloadedmetadata=r;
 });
 
 
-
 }
 
 
@@ -233,7 +271,10 @@ video.onloadedmetadata=r;
 
 
 
-function closeCamera(){
+
+
+
+function tutupKamera(){
 
 
 if(stream){
@@ -263,7 +304,6 @@ video.srcObject=null;
 
 
 
-
 async function scan(){
 
 
@@ -284,11 +324,11 @@ info.innerHTML=
 "📷 Membuka kamera";
 
 
+await bukaKamera();
 
-await openCamera();
 
 
-await sleep(800);
+await sleep(1000);
 
 
 
@@ -297,28 +337,14 @@ info.innerHTML=
 
 
 
-for(let i=0;i<3;i++){
-
-
 
 suhu =
-capture();
+ambilGambar();
 
 
 
-if(suhu)
-break;
+tutupKamera();
 
-
-
-await sleep(300);
-
-
-}
-
-
-
-closeCamera();
 
 
 
@@ -327,33 +353,33 @@ if(!suhu){
 
 
 info.innerHTML=
-"⚠️ Tidak terbaca ulang";
+"⚠️ Tidak terbaca, ulang";
 
 
-await sleep(500);
+await sleep(800);
+
+
+}
 
 
 }
 
 
 
-}
 
 
 
-
-
-
-hasil.innerHTML=
+hasil.innerHTML =
 "Suhu : "+suhu+"°C";
 
 
 
-info.innerHTML=
+info.innerHTML =
 "✅ Terbaca";
 
 
-sendSheet(suhu);
+kirimSheet(suhu);
+
 
 
 
@@ -362,8 +388,8 @@ await sleep(60000);
 
 
 
-info.innerHTML=
-"⏳ Menunggu scan";
+info.innerHTML =
+"⏳ Menunggu";
 
 
 
@@ -371,6 +397,7 @@ info.innerHTML=
 
 
 
+
 }
 
 
@@ -381,7 +408,7 @@ info.innerHTML=
 
 
 
-function capture(){
+function ambilGambar(){
 
 
 
@@ -418,52 +445,107 @@ canvas.height
 
 
 
+
+let src =
+cv.imread(canvas);
+
+
+
+
+
 // crop display
 
 
-let crop =
-document.createElement("canvas");
+let x =
+Math.floor(src.cols*0.34);
 
 
-let c =
-crop.getContext("2d");
-
+let y =
+Math.floor(src.rows*0.43);
 
 
 let w =
-canvas.width*0.30;
+Math.floor(src.cols*0.32);
 
 
 let h =
-canvas.height*0.16;
+Math.floor(src.rows*0.18);
 
 
 
-crop.width=w;
-
-crop.height=h;
-
-
-
-c.drawImage(
-
-canvas,
-
-
-canvas.width*0.35,
-
-canvas.height*0.45,
-
-
-w,
-h,
-
-
-0,
-0,
-
+let rect =
+new cv.Rect(
+x,
+y,
 w,
 h
+);
+
+
+
+let crop =
+src.roi(rect);
+
+
+
+
+
+// grayscale
+
+
+let gray =
+new cv.Mat();
+
+
+cv.cvtColor(
+
+crop,
+
+gray,
+
+cv.COLOR_RGBA2GRAY
+
+);
+
+
+
+
+
+// naikkan kontras
+
+
+cv.equalizeHist(
+
+gray,
+
+gray
+
+);
+
+
+
+
+
+
+// threshold
+
+
+let binary =
+new cv.Mat();
+
+
+
+cv.threshold(
+
+gray,
+
+binary,
+
+120,
+
+255,
+
+cv.THRESH_BINARY
 
 );
 
@@ -473,82 +555,181 @@ h
 
 
 
-// ubah LED jadi putih
+
+let contours =
+new cv.MatVector();
 
 
-let img =
-c.getImageData(
+let hierarchy =
+new cv.Mat();
 
-0,
 
-0,
 
-w,
 
-h
+
+cv.findContours(
+
+binary,
+
+contours,
+
+hierarchy,
+
+cv.RETR_EXTERNAL,
+
+cv.CHAIN_APPROX_SIMPLE
 
 );
 
 
 
-let d =
-img.data;
+
+
+
+
+let boxes=[];
+
+
 
 
 
 for(
 let i=0;
-i<d.length;
-i+=4
+i<contours.size();
+i++
 ){
 
 
-let gray =
-0.299*d[i]+
-0.587*d[i+1]+
-0.114*d[i+2];
+
+let cnt =
+contours.get(i);
 
 
 
-let v =
-gray>110?255:0;
+let r =
+cv.boundingRect(cnt);
 
 
 
-d[i]=v;
-d[i+1]=v;
-d[i+2]=v;
+
+if(
+
+r.height>15 &&
+
+r.width>5
+
+){
+
+
+boxes.push(r);
+
+
+}
 
 
 }
 
 
 
-c.putImageData(
-img,
-0,
-0
+
+
+
+
+boxes.sort(
+(a,b)=>a.x-b.x
 );
 
 
 
 
 
+let angka="";
 
-let angka =
-detectDisplay(crop);
+
+
+
+
+boxes.forEach(r=>{
+
+
+
+let ratio =
+r.height/r.width;
+
+
+
+
+// bentuk digit
+
+
+
+if(ratio>3){
+
+angka+="1";
+
+
+}
+
+else if(
+ratio>1.6 &&
+ratio<2.8
+){
+
+angka+="7";
+
+
+}
+
+else if(
+ratio>=1 &&
+ratio<=1.6
+){
+
+angka+="9";
+
+
+}
+
+else{
+
+
+angka+="0";
+
+
+}
+
+
+
+});
+
+
+
+
+
+
+
+
+// buang jika tidak masuk suhu
 
 
 
 if(
-angka
+
+angka.length==2 &&
+
+angka!="00"
+
 ){
+
 
 
 return "-"+angka;
 
 
+
 }
+
+
 
 
 
@@ -556,78 +737,6 @@ return null;
 
 
 
-}
-
-
-
-
-
-
-
-
-
-function detectDisplay(cv){
-
-
-let ctx =
-cv.getContext("2d");
-
-
-let w =
-cv.width;
-
-
-let h =
-cv.height;
-
-
-
-let result="";
-
-
-
-// ambil 2 digit utama
-
-for(
-let i=0;i<2;i++
-){
-
-
-
-let digit =
-readDigit(
-
-ctx,
-
-i*w/2,
-
-0,
-
-w/2,
-
-h
-
-);
-
-
-
-result += digit;
-
-
-
-}
-
-
-
-if(
-result.length==2
-)
-
-return result;
-
-
-
-return "";
 
 }
 
@@ -639,157 +748,7 @@ return "";
 
 
 
-function readDigit(
-ctx,
-x,y,w,h
-){
-
-
-
-let seg={
-
-
-
-a:[0.5,0.18],
-
-b:[0.82,0.35],
-
-c:[0.82,0.65],
-
-d:[0.5,0.82],
-
-e:[0.18,0.65],
-
-f:[0.18,0.35],
-
-g:[0.5,0.5]
-
-
-};
-
-
-
-let on=[];
-
-
-
-for(
-let s in seg
-){
-
-
-let px =
-x+w*seg[s][0];
-
-
-let py =
-h*seg[s][1];
-
-
-
-let data =
-ctx.getImageData(
-
-px-6,
-
-py-6,
-
-12,
-
-12
-
-);
-
-
-
-let count=0;
-
-
-
-for(
-let i=0;
-i<data.data.length;
-i+=4
-){
-
-
-if(
-data.data[i]>200
-)
-
-count++;
-
-
-}
-
-
-
-if(count>25)
-
-on.push(s);
-
-
-
-}
-
-
-
-
-
-
-
-let key =
-on.sort().join("");
-
-
-
-
-
-let table={
-
-
-"abcdef":"0",
-
-"bc":"1",
-
-"abdeg":"2",
-
-"abcdg":"3",
-
-"bcfg":"4",
-
-"acdfg":"5",
-
-"acdefg":"6",
-
-"abc":"7",
-
-"abcdefg":"8",
-
-"abcdfg":"9"
-
-
-
-};
-
-
-
-
-
-return table[key] || "";
-
-}
-
-
-
-
-
-
-
-
-
-function sendSheet(suhu){
-
+function kirimSheet(suhu){
 
 
 fetch(
@@ -826,13 +785,19 @@ waktu:new Date().toLocaleString()
 
 
 
+
+
 function sleep(ms){
 
 return new Promise(
+
 r=>setTimeout(r,ms)
+
 );
 
 }
+
+
 
 
 
