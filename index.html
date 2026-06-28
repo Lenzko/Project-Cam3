@@ -5,19 +5,17 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Freezer Temperature Scanner</title>
-
-<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<title>Freezer Visual Scanner</title>
 
 
 <style>
 
 body{
-margin:0;
 background:#111;
 color:white;
 font-family:Arial;
 text-align:center;
+margin:0;
 }
 
 
@@ -38,54 +36,44 @@ width:100%;
 }
 
 
-
 #target{
 
 position:absolute;
 
-width:35%;
-height:18%;
+width:30%;
+height:16%;
 
-left:32.5%;
-top:42%;
+left:35%;
+top:45%;
 
 border:4px solid #00ff00;
-
-box-sizing:border-box;
 
 }
 
 
-
 #hasil{
 
-font-size:42px;
+font-size:40px;
 margin:20px;
 
 }
 
 
-
 #info{
 
 color:#00ff00;
-font-size:18px;
 
 }
-
 
 
 button{
 
 width:90px;
 height:90px;
-
+border-radius:50%;
 font-size:40px;
 
-border-radius:50%;
-
 }
-
 
 
 canvas{
@@ -95,14 +83,13 @@ display:none;
 
 </style>
 
-
 </head>
 
 
 <body>
 
 
-<h2>❄️ Freezer Temp Scanner</h2>
+<h2>❄️ Freezer Visual Scanner</h2>
 
 
 
@@ -119,11 +106,9 @@ display:none;
 
 
 
-
 <div id="hasil">
 -
 </div>
-
 
 
 <div id="info">
@@ -131,11 +116,9 @@ Tekan kamera
 </div>
 
 
-
 <button onclick="start()">
 📷
 </button>
-
 
 
 <canvas id="canvas"></canvas>
@@ -145,7 +128,6 @@ Tekan kamera
 
 
 <script>
-
 
 
 const SHEET_URL =
@@ -170,11 +152,9 @@ document.getElementById("info");
 
 
 
-let worker;
-
 let aktif=false;
 
-let streamCamera=null;
+let stream=null;
 
 
 
@@ -182,34 +162,13 @@ let streamCamera=null;
 
 
 
-async function start(){
+function start(){
 
 
 if(aktif)return;
 
 
-
 aktif=true;
-
-
-
-worker =
-await Tesseract.createWorker("eng");
-
-
-
-await worker.setParameters({
-
-tessedit_char_whitelist:
-"0123456789-.C"
-
-
-});
-
-
-
-info.innerHTML =
-"Scanner aktif";
 
 
 scan();
@@ -224,42 +183,46 @@ scan();
 
 
 
+async function openCamera(){
 
 
-async function bukaKamera(){
-
-
-streamCamera =
+stream =
 await navigator.mediaDevices.getUserMedia({
+
 
 video:{
 
+
 facingMode:"environment",
+
 
 width:{
 ideal:1920
 },
 
+
 height:{
 ideal:1080
 }
 
+
 }
+
 
 });
 
 
 
-video.srcObject =
-streamCamera;
+video.srcObject=stream;
 
 
 
-await new Promise(resolve=>{
+await new Promise(r=>{
 
-video.onloadedmetadata=resolve;
+video.onloadedmetadata=r;
 
 });
+
 
 
 }
@@ -270,28 +233,28 @@ video.onloadedmetadata=resolve;
 
 
 
-function matikanKamera(){
+function closeCamera(){
 
 
-if(streamCamera){
+if(stream){
 
 
-streamCamera
+stream
 .getTracks()
 .forEach(t=>t.stop());
 
 
-streamCamera=null;
+stream=null;
 
 
 }
-
 
 
 video.srcObject=null;
 
 
 }
+
 
 
 
@@ -309,11 +272,6 @@ while(aktif){
 
 
 
-let mulai =
-Date.now();
-
-
-
 let suhu=null;
 
 
@@ -322,10 +280,20 @@ while(!suhu){
 
 
 
-await bukaKamera();
+info.innerHTML=
+"📷 Membuka kamera";
 
 
-await sleep(1000);
+
+await openCamera();
+
+
+await sleep(800);
+
+
+
+info.innerHTML=
+"🔍 Analisis visual";
 
 
 
@@ -333,37 +301,24 @@ for(let i=0;i<3;i++){
 
 
 
-info.innerHTML =
-"🔍 Scan suhu "+(i+1)+"/3";
+suhu =
+capture();
 
 
 
-let r =
-await capture();
-
-
-
-if(r){
-
-
-suhu=r;
-
+if(suhu)
 break;
 
-
-}
 
 
 await sleep(300);
 
 
-
 }
 
 
 
-
-matikanKamera();
+closeCamera();
 
 
 
@@ -371,7 +326,7 @@ matikanKamera();
 if(!suhu){
 
 
-info.innerHTML =
+info.innerHTML=
 "⚠️ Tidak terbaca ulang";
 
 
@@ -388,14 +343,14 @@ await sleep(500);
 
 
 
-hasil.innerHTML =
-"Suhu : "+suhu.angka+"°C";
+
+hasil.innerHTML=
+"Suhu : "+suhu+"°C";
 
 
 
-info.innerHTML =
-"📤 Kirim data";
-
+info.innerHTML=
+"✅ Terbaca";
 
 
 sendSheet(suhu);
@@ -403,35 +358,16 @@ sendSheet(suhu);
 
 
 
+await sleep(60000);
 
 
 
-let waktu =
-Date.now()-mulai;
-
-
-
-let tunggu =
-60000-waktu;
-
-
-
-if(tunggu<1000)
-tunggu=1000;
-
-
-
-await sleep(tunggu);
-
-
-
-info.innerHTML =
-"⏳ Menunggu scan berikutnya";
+info.innerHTML=
+"⏳ Menunggu scan";
 
 
 
 }
-
 
 
 
@@ -445,7 +381,7 @@ info.innerHTML =
 
 
 
-async function capture(){
+function capture(){
 
 
 
@@ -482,9 +418,7 @@ canvas.height
 
 
 
-
-
-// crop display suhu
+// crop display
 
 
 let crop =
@@ -497,11 +431,11 @@ crop.getContext("2d");
 
 
 let w =
-canvas.width*0.35;
+canvas.width*0.30;
 
 
 let h =
-canvas.height*0.18;
+canvas.height*0.16;
 
 
 
@@ -516,9 +450,9 @@ c.drawImage(
 canvas,
 
 
-canvas.width*0.325,
+canvas.width*0.35,
 
-canvas.height*0.42,
+canvas.height*0.45,
 
 
 w,
@@ -539,10 +473,7 @@ h
 
 
 
-
-
-
-// proses LED display
+// ubah LED jadi putih
 
 
 let img =
@@ -573,49 +504,30 @@ i+=4
 
 
 let gray =
-
 0.299*d[i]+
 0.587*d[i+1]+
 0.114*d[i+2];
 
 
 
-
-// konversi LED putih
-
-if(gray>110){
-
-gray=255;
-
-}else{
-
-gray=0;
-
-}
+let v =
+gray>110?255:0;
 
 
 
-d[i]=gray;
-
-d[i+1]=gray;
-
-d[i+2]=gray;
+d[i]=v;
+d[i+1]=v;
+d[i+2]=v;
 
 
 }
-
-
 
 
 
 c.putImageData(
-
 img,
-
 0,
-
 0
-
 );
 
 
@@ -623,131 +535,20 @@ img,
 
 
 
+let angka =
+detectDisplay(crop);
 
-
-// perbesar
-
-
-let big =
-document.createElement("canvas");
-
-
-
-big.width =
-crop.width*6;
-
-
-big.height =
-crop.height*6;
-
-
-
-let b =
-big.getContext("2d");
-
-
-
-b.imageSmoothingEnabled=false;
-
-
-
-b.drawImage(
-
-crop,
-
-0,
-
-0,
-
-big.width,
-
-big.height
-
-);
-
-
-
-
-
-
-
-
-
-let data =
-await worker.recognize(big);
-
-
-
-
-
-let text =
-data.data.text;
-
-
-
-
-
-console.log(text);
-
-
-
-
-
-
-
-// bersihkan OCR
-
-
-let suhu =
-
-text
-
-.replace(/O/g,"0")
-
-.replace(/I/g,"1")
-
-.replace(/[^0-9\-]/g,"");
-
-
-
-
-
-
-
-// validasi freezer
 
 
 if(
-
-suhu.startsWith("-") &&
-
-suhu.length>=3 &&
-
-suhu.length<=4 &&
-
-data.data.confidence>=70
-
+angka
 ){
 
 
-
-return {
-
-
-angka:suhu,
-
-confidence:data.data.confidence
-
-
-};
-
+return "-"+angka;
 
 
 }
-
-
-
-
 
 
 
@@ -765,7 +566,230 @@ return null;
 
 
 
-function sendSheet(data){
+function detectDisplay(cv){
+
+
+let ctx =
+cv.getContext("2d");
+
+
+let w =
+cv.width;
+
+
+let h =
+cv.height;
+
+
+
+let result="";
+
+
+
+// ambil 2 digit utama
+
+for(
+let i=0;i<2;i++
+){
+
+
+
+let digit =
+readDigit(
+
+ctx,
+
+i*w/2,
+
+0,
+
+w/2,
+
+h
+
+);
+
+
+
+result += digit;
+
+
+
+}
+
+
+
+if(
+result.length==2
+)
+
+return result;
+
+
+
+return "";
+
+}
+
+
+
+
+
+
+
+
+
+function readDigit(
+ctx,
+x,y,w,h
+){
+
+
+
+let seg={
+
+
+
+a:[0.5,0.18],
+
+b:[0.82,0.35],
+
+c:[0.82,0.65],
+
+d:[0.5,0.82],
+
+e:[0.18,0.65],
+
+f:[0.18,0.35],
+
+g:[0.5,0.5]
+
+
+};
+
+
+
+let on=[];
+
+
+
+for(
+let s in seg
+){
+
+
+let px =
+x+w*seg[s][0];
+
+
+let py =
+h*seg[s][1];
+
+
+
+let data =
+ctx.getImageData(
+
+px-6,
+
+py-6,
+
+12,
+
+12
+
+);
+
+
+
+let count=0;
+
+
+
+for(
+let i=0;
+i<data.data.length;
+i+=4
+){
+
+
+if(
+data.data[i]>200
+)
+
+count++;
+
+
+}
+
+
+
+if(count>25)
+
+on.push(s);
+
+
+
+}
+
+
+
+
+
+
+
+let key =
+on.sort().join("");
+
+
+
+
+
+let table={
+
+
+"abcdef":"0",
+
+"bc":"1",
+
+"abdeg":"2",
+
+"abcdg":"3",
+
+"bcfg":"4",
+
+"acdfg":"5",
+
+"acdefg":"6",
+
+"abc":"7",
+
+"abcdefg":"8",
+
+"abcdfg":"9"
+
+
+
+};
+
+
+
+
+
+return table[key] || "";
+
+}
+
+
+
+
+
+
+
+
+
+function sendSheet(suhu){
+
 
 
 fetch(
@@ -774,24 +798,24 @@ SHEET_URL,
 
 {
 
+
 method:"POST",
 
 mode:"no-cors",
 
+
 body:JSON.stringify({
 
-suhu:data.angka,
-
-confidence:data.confidence,
+suhu:suhu,
 
 waktu:new Date().toLocaleString()
 
 })
 
+
 }
 
 );
-
 
 
 }
@@ -805,18 +829,14 @@ waktu:new Date().toLocaleString()
 function sleep(ms){
 
 return new Promise(
-
 r=>setTimeout(r,ms)
-
 );
 
 }
 
 
 
-
 </script>
-
 
 
 </body>
