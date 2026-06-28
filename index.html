@@ -195,20 +195,25 @@
             return null;
         }
 
-        function kirim(suhu) {
-            fetch(SHEET_URL, {
-                method: "POST",
-                mode: "no-cors", 
-                body: JSON.stringify({
-                    suhu: suhu,
-                    waktu: new Date().toLocaleString("id-ID")
-                })
-            }).then(() => {
-                console.log("Data dikirim (status tidak terbaca karena no-cors): ", suhu);
-            }).catch(err => {
-                console.error("Gagal mengirim data:", err);
-            });
-        }
+function kirim(suhu) {
+    let data = {
+        "suhu": suhu,
+        "waktu": new Date().toLocaleString("id-ID")
+    };
+
+    fetch(SHEET_URL, {
+        method: "POST",
+        mode: "no-cors",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify(data)
+    }).then(() => {
+        console.log("Data dikirim: " + suhu);
+    }).catch(err => {
+        console.error("Error saat kirim data:", err);
+    });
+}
 
         function sleep(ms) { 
             return new Promise(r => setTimeout(r, ms)); 
