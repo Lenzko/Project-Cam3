@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html>
-
 <head>
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,7 +7,6 @@
 <title>Freezer LED Scanner</title>
 
 <script src="https://docs.opencv.org/4.x/opencv.js"></script>
-
 
 <style>
 
@@ -22,14 +20,12 @@ text-align:center;
 
 
 .camera{
-
 position:relative;
 width:95%;
 max-width:700px;
 margin:auto;
 border-radius:20px;
 overflow:hidden;
-
 }
 
 
@@ -38,13 +34,11 @@ width:100%;
 }
 
 
-
 #target{
 
 position:absolute;
 left:34%;
 top:43%;
-
 width:32%;
 height:18%;
 
@@ -53,14 +47,12 @@ border:4px solid #00ff00;
 }
 
 
-
 #hasil{
 
 font-size:40px;
-margin:10px;
+margin:15px;
 
 }
-
 
 
 #info{
@@ -68,7 +60,6 @@ margin:10px;
 color:#00ff00;
 
 }
-
 
 
 button{
@@ -81,17 +72,15 @@ border-radius:50%;
 }
 
 
-
 canvas{
 
 border:2px solid red;
-
 width:80%;
 
 }
 
-</style>
 
+</style>
 
 </head>
 
@@ -100,26 +89,23 @@ width:80%;
 <body>
 
 
-
 <h2>❄️ Freezer LED Scanner</h2>
 
 
 
 <div class="camera">
 
-
 <video id="video" autoplay playsinline></video>
 
-
 <div id="target"></div>
-
 
 </div>
 
 
 
-
-<div id="hasil">-</div>
+<div id="hasil">
+-
+</div>
 
 
 <div id="info">
@@ -127,15 +113,12 @@ Siap
 </div>
 
 
-
 <button onclick="start()">
 📷
 </button>
 
 
-
 <canvas id="canvas"></canvas>
-
 
 
 
@@ -164,7 +147,6 @@ let info =
 document.getElementById("info");
 
 
-
 let stream=null;
 
 let aktif=false;
@@ -174,18 +156,13 @@ let aktif=false;
 
 
 
-
 function start(){
-
 
 if(aktif)return;
 
-
 aktif=true;
 
-
-loop();
-
+scanLoop();
 
 }
 
@@ -194,11 +171,7 @@ loop();
 
 
 
-
-
-
 async function bukaCamera(){
-
 
 
 stream =
@@ -247,14 +220,11 @@ function tutupCamera(){
 
 if(stream){
 
-
 stream
 .getTracks()
 .forEach(t=>t.stop());
 
-
 stream=null;
-
 
 }
 
@@ -271,16 +241,13 @@ video.srcObject=null;
 
 
 
-
-async function loop(){
+async function scanLoop(){
 
 
 while(aktif){
 
 
-
 let nilai=null;
-
 
 
 
@@ -303,7 +270,7 @@ await sleep(1500);
 
 
 info.innerHTML =
-"🔍 scan angka";
+"🔍 menganalisis";
 
 
 
@@ -313,7 +280,6 @@ ambilFoto();
 
 
 tutupCamera();
-
 
 
 
@@ -331,28 +297,40 @@ await sleep(1500);
 }
 
 
-
 }
 
 
 
+
+// HASIL VISUAL
 
 hasil.innerHTML =
 "Suhu : "+nilai+"°C";
 
 
 
+console.log(
+"Nilai hasil scan:",
+nilai
+);
+
+
+
+
+
 info.innerHTML =
-"📤 mengirim data";
+"📤 kirim data";
 
 
 
-await kirim(nilai);
+await kirimSheet(nilai);
+
+
 
 
 
 info.innerHTML =
-"✅ berhasil";
+"✅ terkirim";
 
 
 
@@ -360,12 +338,12 @@ info.innerHTML =
 await sleep(60000);
 
 
-
 }
 
 
 
 }
+
 
 
 
@@ -376,7 +354,6 @@ await sleep(60000);
 
 
 function ambilFoto(){
-
 
 
 let temp =
@@ -396,6 +373,7 @@ let ctx =
 temp.getContext("2d");
 
 
+
 ctx.drawImage(
 
 video,
@@ -413,14 +391,15 @@ temp.height
 
 
 
+
 let src =
 cv.imread(temp);
 
 
 
 
-// crop display
 
+// area angka freezer
 
 let x =
 src.cols*0.34;
@@ -440,15 +419,18 @@ src.rows*0.18;
 
 
 
-
 let crop =
 src.roi(
 
 new cv.Rect(
-x,y,w,h
+x,
+y,
+w,
+h
 )
 
 );
+
 
 
 
@@ -468,6 +450,7 @@ gray,
 cv.COLOR_RGBA2GRAY
 
 );
+
 
 
 
@@ -511,28 +494,18 @@ cv.CV_8U
 
 
 
-
-
 cv.dilate(
-
 thresh,
-
 thresh,
-
 kernel
-
 );
 
 
 
 cv.erode(
-
 thresh,
-
 thresh,
-
 kernel
-
 );
 
 
@@ -584,14 +557,11 @@ let box=[];
 
 
 
-
-
 for(
 let i=0;
 i<contours.size();
 i++
 ){
-
 
 
 let r =
@@ -602,21 +572,20 @@ contours.get(i)
 
 
 
-let angkaOk =
+let angka =
 r.height > h*0.3;
 
 
 
-let minusOk =
+let minus =
 r.width > h*0.2 &&
 r.height < r.width*0.6;
 
 
 
 
-
 if(
-angkaOk || minusOk
+angka || minus
 ){
 
 
@@ -624,17 +593,17 @@ angkaOk || minusOk
 if(
 r.y > h*0.15 &&
 r.x < w*0.8
-)
+){
 
 box.push(r);
 
-
+}
 
 }
 
 
-
 }
+
 
 
 
@@ -650,6 +619,7 @@ box.sort(
 
 
 
+
 let angka="";
 
 let minus=false;
@@ -658,8 +628,8 @@ let minus=false;
 
 
 
-box.forEach(r=>{
 
+box.forEach(r=>{
 
 
 let ratio =
@@ -693,9 +663,8 @@ roi.delete();
 
 
 
-if(
-ratio<0.8
-){
+if(ratio<0.8){
+
 
 minus=true;
 
@@ -705,27 +674,21 @@ minus=true;
 else{
 
 
-if(
-ratio>2.4
-){
+if(ratio>2.4){
 
 angka+="1";
 
 
 }
 
-else if(
-solid<0.45
-){
+else if(solid<0.45){
 
 angka+="7";
 
 
 }
 
-else if(
-solid<0.65
-){
+else if(solid<0.65){
 
 angka+="9";
 
@@ -741,15 +704,10 @@ angka+="0";
 }
 
 
-
 }
 
 
-
-
 });
-
-
 
 
 
@@ -781,7 +739,11 @@ angka.length>=2
 ){
 
 
-return (minus?"-":"")+angka;
+return (
+
+minus ? "-" : ""
+
+)+angka;
 
 
 }
@@ -802,30 +764,36 @@ return null;
 
 
 
-async function kirim(suhu){
+// =========================
+// SEND DATA KE SHEET
+// =========================
+
+
+function kirimSheet(nilai){
 
 
 
 console.log(
-"Kirim suhu:",
-suhu
+"Mengirim:",
+nilai
 );
 
 
 
-let data =
+
+let form =
 new URLSearchParams();
 
 
 
-data.append(
+form.append(
 "suhu",
-String(suhu)
+nilai
 );
 
 
 
-data.append(
+form.append(
 "waktu",
 new Date()
 .toLocaleString("id-ID")
@@ -835,21 +803,18 @@ new Date()
 
 
 
-await fetch(
+
+return fetch(
 
 SHEET_URL,
 
 {
 
-
 method:"POST",
-
 
 mode:"no-cors",
 
-
 headers:{
-
 
 "Content-Type":
 "application/x-www-form-urlencoded"
@@ -857,9 +822,8 @@ headers:{
 },
 
 
-
-body:data.toString()
-
+body:
+form.toString()
 
 
 }
